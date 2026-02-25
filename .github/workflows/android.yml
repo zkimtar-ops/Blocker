@@ -1,8 +1,8 @@
-name: Final Build V4 - Java 17 - Gradle Fix
+name: Zakari
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -12,55 +12,67 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup NodeJS
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Install Cordova
-        run: npm install -g cordova
-
-      - name: Prepare Android Platform
+      - name: Build and Sign Everything
         run: |
-          cordova platform add android@12.0.1
+          # 1. تثبيت كوردوفا
+          npm install -g cordova
+          
+          # 2. إعداد package.json
+          [ -f package.json ] || npm init -y
+
+          # 3. قبول تراخيص الأندرويد
+          yes | sdkmanager --licenses || true
+
+          # 4. إعادة بناء المنصة من الصفر (للتخلص من بقايا السبلش)
+          # سنقوم بحذف المنصة أولاً لضمان تطبيق تعديلات الـ xml الجديدة
+          cordova platform remove android --nosave || true
+          cordova platform add android@13.0.0 --save
+          
+          # إزالة أي إضافة سبلش قد تكون مثبتة تلقائياً
+          cordova plugin remove cordova-plugin-splashscreen --save || true
+          cordova plugin add cordova-plugin-geolocation --save
+          
+          # عمل Prepare لتحديث ملفات الأندرويد بإعدادات الـ XML
           cordova prepare android
 
-      - name: Fix Gradle Version
-        # هذا الأمر يحل مشكلة الصورة 8165 عبر استخدام إصدار جرادل متوافق
-        run: |
-          cd platforms/android
-          ./gradlew wrapper --gradle-version 8.3
+          # 5. إنشاء مفتاح التوقيع
+          keytool -genkey -v -keystore release.jks -alias zakaria_key -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=Zakaria" -deststoretype pkcs12
 
-      - name: Generate JKS Key
-        run: |
-          keytool -genkey -v -keystore release.jks -keyalg RSA -keysize 2048 -validity 10000 \
-          -alias my-alias -keypass mypassword -storepass mypassword \
-          -dname "CN=Zakaria, OU=Dev, O=Blocker, L=Tokyo, S=Tokyo, C=JP"
+          # 6. ملف إعدادات البناء
+          cat <<EOF > build.json
+          {
+              "android": {
+                  "release": {
+                      "keystore": "release.jks",
+                      "storePassword": "123456",
+                      "alias": "zakaria_key",
+                      "password": "123456"
+                  }
+              }
+          }
+          EOF
 
-      - name: Build APK (Debug)
-        run: cordova build android --debug
+          # 7. البناء (Release)
+          cordova build android --release --buildConfig=build.json -- --packageType=apk
+          cordova build android --release --buildConfig=build.json -- --packageType=bundle
 
-      - name: Build AAB (Release)
-        run: cordova build android --release -- --appx
+          # 8. نسخ المخرجات
+          mkdir -p output
+          find platforms/android/app/build/outputs/apk/release/ -name "*.apk" -exec cp {} ./output/SOS_Japan_Pro.apk \;
+          find platforms/android/app/build/outputs/bundle/release/ -name "*.aab" -exec cp {} ./output/SOS_Japan_Pro.aab \;
+          cp release.jks ./output/release.jks
 
-      - name: Sign AAB for Google Play
-        run: |
-          jarsigner -verbose -sigalg SHA256withRSA -digestalg SHA256 \
-          -keystore release.jks -storepass mypassword \
-          platforms/android/app/build/outputs/bundle/release/app-release.aab my-alias
-
-      - name: Upload Final Package (v4)
+      - name: Upload Final Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Blocker-Japan-Complete-Package
-          path: |
-            release.jks
-            platforms/android/app/build/outputs/apk/debug/app-debug.apk
-            platforms/android/app/build/outputs/bundle/release/app-release.aab
-
+          name: Zakaria-Final-App
+          path: output/
