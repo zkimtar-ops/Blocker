@@ -1,4 +1,4 @@
-name: Final Build V4 - Java 17
+name: Final Build V4 - Java 17 - Gradle Fix
 
 on:
   push:
@@ -28,8 +28,14 @@ jobs:
 
       - name: Prepare Android Platform
         run: |
-          cordova platform add android
+          cordova platform add android@12.0.1
           cordova prepare android
+
+      - name: Fix Gradle Version
+        # هذا الأمر يحل مشكلة الصورة 8165 عبر استخدام إصدار جرادل متوافق
+        run: |
+          cd platforms/android
+          ./gradlew wrapper --gradle-version 8.3
 
       - name: Generate JKS Key
         run: |
@@ -57,3 +63,4 @@ jobs:
             release.jks
             platforms/android/app/build/outputs/apk/debug/app-debug.apk
             platforms/android/app/build/outputs/bundle/release/app-release.aab
+
