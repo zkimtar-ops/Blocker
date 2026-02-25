@@ -1,20 +1,10 @@
 <?xml version='1.0' encoding='utf-8'?>
-<widget id="com.zakaria.callblocker" version="1.0.0" xmlns="http://www.w3.org/ns/widgets" xmlns:android="http://schemas.android.com/apk/res/android">
-    <name>SafeCall Japan</name>
-    <description>تطبيق حظر المكالمات في اليابان</description>
-    <author email="zakaria@example.com">Zakaria</author>
-    
+<widget id="com.zakaria.blocker" version="1.0.0" xmlns="http://www.w3.org/ns/widgets">
+    <name>Blocker</name>
+    <description>تطبيق حظر المكالمات اليابان</description>
     <content src="index.html" />
     <access origin="*" />
-    
     <platform name="android">
-        <config-file target="AndroidManifest.xml" parent="/*">
-            <uses-permission android:name="android.permission.READ_PHONE_STATE" />
-            <uses-permission android:name="android.permission.READ_CALL_LOG" />
-            <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
-            <uses-permission android:name="android.permission.MODIFY_PHONE_STATE" />
-        </config-file>
+        <preference name="android-minSdkVersion" value="22" />
     </platform>
-
-    <preference name="StatusBarBackgroundColor" value="#0f172a" />
 </widget>
