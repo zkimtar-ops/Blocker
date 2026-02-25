@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>SafeCall Japan</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=Noto+Kufi+Arabic:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1; --secondary: #ec4899;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            --card-bg: rgba(255, 255, 255, 0.06);
+            --text-white: #ffffff; --text-muted: #94a3b8; --success: #10b981;
+        }
+        body { font-family: 'Noto Kufi Arabic', sans-serif; background: var(--bg-gradient); color: var(--text-white); margin: 0; min-height: 100vh; overflow-x: hidden; }
+        
+        #onboarding { position: fixed; inset: 0; background: var(--bg-gradient); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px; text-align: center; }
+        .btn-start { background: white; color: var(--primary); border: none; padding: 16px; border-radius: 16px; width: 100%; font-weight: bold; margin-top: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        
+        .container { padding: 20px; max-width: 450px; margin: auto; display: none; flex-direction: column; gap: 15px; }
+        .card { background: var(--card-bg); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 18px; }
+        .row { display: flex; justify-content: space-between; align-items: center; }
+        
+        .switch { position: relative; width: 44px; height: 24px; appearance: none; background: rgba(255,255,255,0.1); border-radius: 12px; cursor: pointer; transition: 0.3s; }
+        .switch:checked { background: var(--primary); }
+        .switch::before { content: ''; position: absolute; width: 18px; height: 18px; background: white; border-radius: 50%; top: 3px; left: 3px; transition: 0.3s; }
+        .switch:checked::before { left: 23px; }
+
+        select { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); padding: 12px; border-radius: 10px; color: white; margin-top: 10px; outline: none; -webkit-appearance: none; }
+        .tag { background: var(--primary); padding: 6px 12px; border-radius: 8px; font-size: 12px; margin: 4px; display: inline-flex; align-items: center; gap: 8px; }
+        .remove-tag { cursor: pointer; color: #ff9999; font-weight: bold; font-size: 16px; }
+    </style>
+</head>
+<body>
+
+<div id="onboarding">
+    <div style="background: var(--primary); width: 80px; height: 80px; border-radius: 20px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; box-shadow: 0 10px 25px rgba(99, 102, 241, 0.4);">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+    </div>
+    <h2>مرحباً بك في درع اليابان</h2>
+    <p style="color: var(--text-muted); line-height: 1.6;">نظام حماية ذكي ضد مكالمات الاحتيال الدولية مع ضمان استثناء أرقام اليابان (+81) دائماً.</p>
+    <button class="btn-start" id="startBtn">تفعيل الحماية</button>
+</div>
+
+<div class="container" id="mainApp">
+    <div style="text-align: center; color: var(--success); font-size: 12px; margin-bottom: 10px; font-weight: bold;">● النظام نشط ومحمي</div>
+
+    <div class="card">
+        <div class="row">
+            <div><b>حظر المكالمات الدولية</b><br><small style="color:var(--text-muted)">رفض أي اتصال من خارج اليابان</small></div>
+            <input type="checkbox" class="switch" id="intlCheck">
+        </div>
+    </div>
+
+    <div class="card" id="whiteListCard" style="display: none;">
+        <b>دول مسموح بها (الاستثناء)</b>
+        <select id="countryAdd">
+            <option value="">+ إضافة دولة للقائمة البيضاء</option>
+            <option value="+966">السعودية 🇸🇦</option>
+            <option value="+20">مصر 🇪🇬</option>
+            <option value="+971">الإمارات 🇦🇪</option>
+            <option value="+1">أمريكا 🇺🇸</option>
+            <option value="+44">بريطانيا 🇬🇧</option>
+        </select>
+        <div id="tagsContainer" style="margin-top: 10px;"></div>
+    </div>
+
+    <div class="card">
+        <div class="row">
+            <div><b>مزامنة Firebase</b><br><small style="color:var(--text-muted)">تحديث تلقائي لقائمة المحتالين</small></div>
+            <input type="checkbox" class="switch" checked disabled>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts مدمجة لضمان التوافق -->
+<script src="cordova.js"></script>
+<script>
+    document.addEventListener('deviceready', () => {
+        let settings = JSON.parse(localStorage.getItem('safeCall_settings')) || { blockIntl: false, whitelist: [] };
+
+        const startBtn = document.getElementById('startBtn');
+        const mainApp = document.getElementById('mainApp');
+        const onboarding = document.getElementById('onboarding');
+        const intlCheck = document.getElementById('intlCheck');
+        const whiteListCard = document.getElementById('whiteListCard');
+        const countryAdd = document.getElementById('countryAdd');
+        const tagsContainer = document.getElementById('tagsContainer');
+
+        // تطبيق الإعدادات المحفوظة
+        if (localStorage.getItem('first_run') === 'false') {
+            onboarding.style.display = 'none';
+            mainApp.style.display = 'flex';
+        }
+
+        intlCheck.checked = settings.blockIntl;
+        whiteListCard.style.display = settings.blockIntl ? 'block' : 'none';
+        renderTags();
+
+        // الأحداث
+        startBtn.onclick = () => {
+            onboarding.style.display = 'none';
+            mainApp.style.display = 'flex';
+            localStorage.setItem('first_run', 'false');
+        };
+
+        intlCheck.onchange = (e) => {
+            settings.blockIntl = e.target.checked;
+            whiteListCard.style.display = settings.blockIntl ? 'block' : 'none';
+            save();
+        };
+
+        countryAdd.onchange = (e) => {
+            const val = e.target.value;
+            if (val && !settings.whitelist.includes(val)) {
+                settings.whitelist.push(val);
+                renderTags();
+                save();
+            }
+            e.target.value = "";
+        };
+
+        function renderTags() {
+            tagsContainer.innerHTML = '';
+            settings.whitelist.forEach(code => {
+                const tag = document.createElement('span');
+                tag.className = 'tag';
+                tag.innerHTML = `${code} <span class="remove-tag" onclick="removeCode('${code}')">×</span>`;
+                tagsContainer.appendChild(tag);
+            });
+        }
+
+        window.removeCode = (code) => {
+            settings.whitelist = settings.whitelist.filter(c => c !== code);
+            renderTags();
+            save();
+        };
+
+        function save() {
+            localStorage.setItem('safeCall_settings', JSON.stringify(settings));
+        }
+
+        // طلب صلاحيات أندرويد
+        if (window.cordova && cordova.plugins && cordova.plugins.permissions) {
+            const p = cordova.plugins.permissions;
+            p.requestPermissions([p.READ_PHONE_STATE, p.READ_CALL_LOG, p.ANSWER_PHONE_CALLS]);
+        }
+    }, false);
+</script>
+</body>
+</html>
+
