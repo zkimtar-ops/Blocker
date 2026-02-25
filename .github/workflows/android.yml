@@ -1,4 +1,4 @@
-name: Zakari
+name: Safety_Japan_Call_Fixed_V6
 
 on:
   push:
@@ -32,47 +32,48 @@ jobs:
           # 3. قبول تراخيص الأندرويد
           yes | sdkmanager --licenses || true
 
-          # 4. إعادة بناء المنصة من الصفر (للتخلص من بقايا السبلش)
-          # سنقوم بحذف المنصة أولاً لضمان تطبيق تعديلات الـ xml الجديدة
+          # 4. بناء المنصة
           cordova platform remove android --nosave || true
           cordova platform add android@13.0.0 --save
           
-          # إزالة أي إضافة سبلش قد تكون مثبتة تلقائياً
-          cordova plugin remove cordova-plugin-splashscreen --save || true
-          cordova plugin add cordova-plugin-geolocation --save
+          # تثبيت إضافات التوافق لحل مشاكل الانهيار
+          cordova plugin add cordova-plugin-androidx-adapter --save
+          cordova plugin add cordova-plugin-permissions --save
           
-          # عمل Prepare لتحديث ملفات الأندرويد بإعدادات الـ XML
+          # إزالة أي بقايا للسبلش قد تسبب خطأ عند البدء
+          cordova plugin remove cordova-plugin-splashscreen --save || true
+          
           cordova prepare android
 
           # 5. إنشاء مفتاح التوقيع
-          keytool -genkey -v -keystore release.jks -alias zakaria_key -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=Zakaria" -deststoretype pkcs12
+          keytool -genkey -v -keystore safety_release.jks -alias safety_key -keyalg RSA -keysize 2048 -validity 10000 -storepass 123456 -keypass 123456 -dname "CN=Zakaria, O=SafetyJapan, C=JP" -deststoretype pkcs12
 
           # 6. ملف إعدادات البناء
           cat <<EOF > build.json
           {
               "android": {
                   "release": {
-                      "keystore": "release.jks",
+                      "keystore": "safety_release.jks",
                       "storePassword": "123456",
-                      "alias": "zakaria_key",
+                      "alias": "safety_key",
                       "password": "123456"
                   }
               }
           }
           EOF
 
-          # 7. البناء (Release)
+          # 7. بناء APK و AAB
           cordova build android --release --buildConfig=build.json -- --packageType=apk
           cordova build android --release --buildConfig=build.json -- --packageType=bundle
 
-          # 8. نسخ المخرجات
+          # 8. تنظيم المخرجات
           mkdir -p output
-          find platforms/android/app/build/outputs/apk/release/ -name "*.apk" -exec cp {} ./output/SOS_Japan_Pro.apk \;
-          find platforms/android/app/build/outputs/bundle/release/ -name "*.aab" -exec cp {} ./output/SOS_Japan_Pro.aab \;
-          cp release.jks ./output/release.jks
+          find platforms/android/app/build/outputs/apk/release/ -name "*.apk" -exec cp {} ./output/Safety_Japan_Call_Fixed.apk \;
+          find platforms/android/app/build/outputs/bundle/release/ -name "*.aab" -exec cp {} ./output/Safety_Japan_Call_Fixed.aab \;
+          cp safety_release.jks ./output/safety_release.jks
 
       - name: Upload Final Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: Zakaria-Final-App
+          name: Fixed-Safety-Japan-Package
           path: output/
